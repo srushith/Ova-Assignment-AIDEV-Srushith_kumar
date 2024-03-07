@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EntireAI</title>
+  <script src="https://cdn.jsdelivr.net/npm/libflac.js/libflac.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recorder-js/dist/recorder.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f2f5;
+      height: 100vh;
+    }
+
+    .flexconatainer {
+      display: flex;
+      justify-content: space-evenly;
+    }
+
+    .heading {
+      text-align: center;
+      font-weight: 600;
+      margin: 20;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .column {
+      flex: 1;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      margin: 40px;
+      width: 500px;
+      margin-bottom: 20px; 
+      margin-top: -50px; 
+    }
+
+    h2 {
+      color: #343a40;
+      margin-bottom: 10px;
+    }
+
+    .input-container,
+    .output-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .result-container {
+      width: 100%;
+      height: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+      padding: 30px;
+      flex: 1;
+    }
+
+    .button {
+      padding: 9px 20px;
+      margin: 10px;
+      background-color: #428bca;
+      /* Blue */
+      color: white;
+      width: 130px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 14px;
+    }
+
+    .button:hover {
+      background-color: #3573a0;
+      /* Darker blue */
+    }
+
+    textarea,
+    input[type="text"] {
+      width: 95%;
+      padding: 0px;
+      border: 2px solid #ccc;
+      border-radius: 0px;
+      resize: none;
+      margin-left: 0px; /* Left margin */
+      font-size: 20px;
+      height: 70px;
+    }
+
+    .response-box {
+      flex: 1;
+      background-color: rgba(253, 255, 255, 0.5);
+      border-radius: 10px;
+      min-height: 500px;
+      overflow-y: auto;
+      font-size: 20px;
+    }
+
+    .response-image {
+    width: 500px;
+    height: 500px;
+    opacity: 0.1;
+    }
+    
+  ::placeholder {
+  font-size: 18px; 
+  }
+  #textinput3::placeholder {
+    font-size: 14px;
+}
+
+  </style>
+</head>
+
+<body>
+  <h1 class="heading">EntireAI Application</h1>
+  <div class="flexconatainer">
+    <div class="container">
+      <div class="column">
+        <div class="input-container">
+          <h2>Chat</h2>
+          <textarea id="textInput" rows="5" placeholder="Enter your message"></textarea>
+          <br><br>
+          <div id="loading1" style="display: none; text-align: center;">
+            <img src=static\loading.gif alt="Loading..." width="30px" height="30px">
+          </div>
+          <button class="button" onclick="sendText()">Send</button>
+          <div id="loading2" style="display: none; text-align: center;">
+            <img src="static\loading.gif" alt="Loading..." width="30px" height="30px">
+          </div>
+          <button id="recordButton" class="button" onclick="toggleRecording()">Record Voice</button>
+
+          
+
+          <h2>Generate</h2>
+          <textarea id="textInput2" rows="5" placeholder="Enter the prompt" ></textarea>
+          <br><br>
+          <div id="loading3" style="display: none; text-align: center;">
+            <img src="static\loading.gif" alt="Loading..." width="30px" height="30px">
+          </div>
+          <button class="button" onclick="generateImage()">Image</button>
+          <div id="loading4" style="display: none; text-align: center;">
+            <img src="static\loading.gif" alt="Loading..." width="30px" height="30px">
+          </div>
+          <button class="button" onclick="textToSpeech()">Audio</button>
+          <br><br>
+          <h2>File Upload</h2>
+          <br><br>
+          <input type="file" id="fileInput" accept="image/*,video/*,application/pdf">
+          <br><br>
+          <div id="loading5" style="display: none; text-align: center;">
+            <img src="static\loading.gif" alt="Loading..." width="30px" height="30px">
+          </div>
+          <button class="button" onclick="uploadFile('image')">Upload Image</button>
+          <button class="button" onclick="uploadFile('pdf')">Upload PDF</button>
+          <br><br>
+          <input type="text" id="textinput3" placeholder="Paste Youtube video link here..."  style="width: 50%; height: 30px;" >
+          <div id="loading7" style="display: none; text-align: center;">
+            <img src="static\loading.gif" alt="Loading..." width="30px" height="30px">
+          </div>
+          <button class="button" onclick="transcribeVideo()">Transcribe</button>
+        </div>
+      </div>
+    </div>
+    <div class="result-container">
+      <h2>Response</h2>
+      <div class="response-box" id="responseBox">
+        <img src="{{ image_url }}" class="response-image" >
+
+        <audio id="audioPlayer" controls>
+          <source id="audioSource" src="" type="audio/flac">
+        </audio>>
+  </div>
+
+
+  <script>
+  function sendText() {
+    document.getElementById("loading1").style.display = "block";
+    var textInput = document.getElementById("textInput").value;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/send-text", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          document.getElementById("loading1").style.display = "none";
+          var response = JSON.parse(xhr.responseText);
+          document.getElementById("responseBox").innerHTML = response.response;
+        }
+      };
+      xhr.send(JSON.stringify({ user_question: textInput }));
+    }
+
+
+  function generateImage() {
+    document.getElementById("loading3").style.display = "block";
+
+    var textInput = document.getElementById("textInput2").value;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/generate-image", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            document.getElementById("loading3").style.display = "none";
+
+            if (xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                var imageUrl = response.image_url;
+                document.getElementById("responseBox").innerHTML = '<img src="' + imageUrl + '" alt="Generated Image">';
+            } else {
+                document.getElementById("responseBox").innerHTML = "Error: Failed to generate image";
+            }
+        }
+    };
+
+    xhr.send(JSON.stringify({ textInput: textInput }));
+  }
+
+  function textToSpeech() {
+    document.getElementById("loading4").style.display = "block";
+    
+    var textInput = document.getElementById("textInput2").value;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/text-to-speech", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.responseType = 'arraybuffer'; // Set response type to arraybuffer
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            document.getElementById("loading4").style.display = "none";
+
+            if (xhr.status === 200) {
+                var blob = new Blob([xhr.response], {type: 'audio/flac'});
+                var audioUrl = URL.createObjectURL(blob);
+                // Update the audio element source
+                document.getElementById("audioSource").src = audioUrl;
+                document.getElementById("audioPlayer").load();
+                document.getElementById("audioPlayer").play();
+            } else {
+                alert("Failed to generate audio");
+            }
+        }
+    };
+    xhr.send(JSON.stringify({ message: textInput }));
+  }
+
+
+  function uploadFile(fileType) {
+    var fileInput = document.getElementById('fileInput').files[0];
+    var formData = new FormData();
+    formData.append('file', fileInput);
+
+    document.getElementById('loading5').style.display = 'block';
+
+    fetch('/upload-file', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      var file_path = data.file_path;
+      generateText(file_path, fileType);
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
+  function generateText(file_path, fileType) {
+    var formData = new FormData();
+    formData.append('file_path', file_path);
+
+    fetch('/generate-text', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      var text = data.text;
+      document.getElementById('responseBox').textContent = text;
+    })
+    .catch(error => console.error('Error:', error))
+    .finally(() => {
+      document.getElementById('loading5').style.display = 'none';
+    });
+  }
+
+  function transcribeVideo() {
+    document.getElementById('loading7').style.display = 'block';
+    var videoLink = document.getElementById("textinput3").value;
+    
+
+    fetch('/transcribe', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 'video_link': videoLink }),
+    })
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('loading7').style.display = 'block';
+        document.getElementById("responseBox").innerText = data;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('loading7').style.display = 'block';
+    });
+}
+
+
+  let recorder;
+  let isRecording = false;
+
+  function toggleRecording() {
+    if (!isRecording) {
+      startRecording();
+      document.getElementById('recordButton').disabled = true;
+      document.getElementById('stopButton').disabled = false;
+    } else {
+      stopRecording();
+      document.getElementById('recordButton').disabled = false;
+      document.getElementById('stopButton').disabled = true;
+    }
+  }
+
+  function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(function(stream) {
+      audioContext = new AudioContext();
+      const input = audioContext.createMediaStreamSource(stream);
+      recorder = new Recorder(input);
+      recorder.record();
+      isRecording = true;
+    })
+    .catch(function(err) {
+      console.error('Error: ' + err);
+    });
+  }
+
+  function stopRecording() {
+    if (recorder) {
+        recorder.stop();
+        recorder.exportWAV(function(blob) {
+            const formData = new FormData();
+            formData.append('audio', blob);
+
+            document.getElementById('loading2').style.display = 'block';
+
+            fetch('/save-audio', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('responseBox').textContent = data.response;
+            })
+            .catch(error => console.error('Error:', error))
+            .finally(() => {
+                document.getElementById('loading2').style.display = 'none';
+            });
+        });
+    }
+    isRecording = false;
+}
+
+  </script>
+</body>
+</html>
